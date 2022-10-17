@@ -1,0 +1,419 @@
+//base class for HTML elements with controller registration 
+class CallBackElement extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      index: this.props.index,
+      arrayIndex: null,
+      value: this.props.value,
+      controllerCallBackObject: this.props.controllerCallBackObject,
+      elementName: this.props.elementName,
+      elementDisplayName: this.props.elementDisplayName,
+      cssTag: this.props.cssTag };
+
+    //registers this element with the controller
+    this.registerWithController();
+  }
+
+  getIndex() {
+    return this.state.index;
+  }
+
+  getArrayIndex() {
+    return this.state.arrayIndex;
+  }
+
+  setArrayIndex(props) {
+    this.state.arrayIndex = props.arrayIndex;
+  }
+
+  getElementName() {
+    return this.state.elementName;
+  }
+
+  getValue() {
+    return this.state.value;
+  }
+
+  setValue(props) {
+    //store input in state
+    this.state.value = props.value;
+    //trigger re-render
+    this.setState({ value: this.state.value });
+  }
+
+  appendValue(props) {
+    //store input in state
+    if (this.state.value === undefined || this.state.value === "0")
+    this.state.value = props.value;else
+    this.state.value = this.state.value + "" + props.value;
+
+    //trigger re-render
+    this.setState({ value: this.state.value });
+  }
+
+  //registers this element with the controller
+  registerWithController() {
+    //add newly created element to CallBack object elment array and capture the index of the newly created array element
+    this.state.controllerCallBackObject.registerCallBackElementObject({
+      callBackElementObject: this,
+      callBackElementDisplayName: this.state.elementDisplayName,
+      callBackElementIndex: this.state.index });
+
+  }
+
+  //default render method
+  render() {
+    return /*#__PURE__*/(
+      React.createElement("div", {
+        className: "callBackElement",
+        onKeyDown: (event) =>
+        this.state.contorllerCallBackObject.handleEvent({
+          callingObject: this,
+          event: event }),
+
+
+        onMouseDown: (event) =>
+        this.state.contorllerCallBackObject.handleEvent({
+          callingObject: this,
+          event: event }) }, "elementName: ",
+
+
+
+      this.state.elementName, ", elementDisplayName:", " ",
+      this.state.elementDisplayName, ", value: ", this.state.value));
+
+
+  }}
+
+
+//base class of a controller which keeps track of all callback elememts which registered with the controller
+class CallBackController extends React.Component {
+  constructor(props) {
+
+    super(props);
+
+    this.state = {
+      elements: new Array() };
+
+  }
+
+  //used by the callbackElment toregister with the contoller
+  registerCallBackElementObject(props) {
+
+    //add newly created element to CallBack object elment array and capture the index of the newly created array element
+    var arrayIndex = this.getElements().push({
+      element: props.callBackElementObject,
+      name: props.callBackElementDisplayName,
+      index: props.callBackElementIndex });
+
+    props.callBackElementObject.setArrayIndex({ arrayIndex: arrayIndex });
+  }
+
+
+  //get all callback or HTML elements which registered with the controller
+  getElements() {
+    return this.state.elements;
+  }
+
+  //retrive element by name, index or arrayindex
+  getElement(props) {
+
+    var item;
+
+    if (props.name !== undefined)
+    item = this.state.elements.find(arrayItem => arrayItem.name === props.name);else
+    if (props.index !== undefined)
+    item = this.state.elements.find(arrayItem => arrayItem.index === props.index);else
+    if (props.arrayIndex !== undefined)
+    item = this.state.elements.find(arrayItem => arrayItem.arrayIndex === props.arrayIndex);else
+    {
+      console.log("getElement no valid search term " + props);
+      return; //no valid search term found
+    }
+
+    //only return an element which is defined.
+    if (item !== undefined && item !== null)
+    return item.element;else
+
+    return null;
+  }
+
+  //used by the callbackElememnt render function to notify controller of a mouse click
+  handleEvent(props) {
+    var callingObject = props.callingObject;
+    var event = props.event;
+    var displayElement = this.getElement({ name: "Display" });
+    var formulaDisplayElement = this.getElement({ name: "FormulaDisplay" });
+    var mouseButton = event.buttons; //1 left, 2 right
+    var keyCode = event.keyCode;
+
+    event.preventDefault();
+
+    var valuePressed = callingObject.getValue();
+
+  }
+
+  render() {
+    return /*#__PURE__*/(
+      React.createElement("div", { className: "controller" }, "default"));
+
+
+
+  }}
+
+
+//basic status elment for the tictacTo (progress)
+class StatusBar extends CallBackElement {
+  constructor(props) {
+    super(props);
+
+    //init the value array
+    this.state['value'] = new Array(); //override valye with array and add first element
+    this.state.value.push({ subject: this.props.value, message: "" });
+
+
+  }
+
+  //override Set/get value to handle array
+  setValue(props) {
+    this.state['value'] = new Array(); //override valye with array and add first element
+    this.state.value.push({ subject: this.state.value, message: "" });
+
+    this.setState({ value: this.state.value });
+  }
+
+  appendValue(props) {
+    this.state.value.push(props);
+    this.setState({ value: this.state.value }); // trigger screen refresh   
+
+  }
+  render() {
+    return /*#__PURE__*/(
+      React.createElement("div", null,
+
+      this.state.value.map((message, index) => {
+        return /*#__PURE__*/React.createElement("li", { key: index }, " ", /*#__PURE__*/React.createElement("strong", null, " ", message.subject + ": " + message.message), " ");
+      })));
+
+
+
+  }}
+
+
+//basic square html elmement with css formating switch once clicked
+class Square extends CallBackElement {
+  constructor(props) {
+    super(props);
+  }
+
+  setValue(props) {
+
+    //check if sqare has already a type/was clicked 
+    if (this.state.value === "X" || this.state.value === "O")
+    return;
+
+    //update the state direclty to ensure the value is instantly available in the object
+    this.state.value = props.value;
+
+    //update state with setState to trigger re-render/screen update
+    this.setState({ value: props.value });
+  }
+
+  render() {
+
+    //defining the ball HTML class name used for CSS formating
+
+    var clsName = "";
+    if (this.getValue() === "X")
+    clsName = "yellowBall";else
+    if (this.getValue() === "O")
+    clsName = "blueBall";else
+
+    clsName = "noBall";
+
+    return /*#__PURE__*/(
+      React.createElement("div", { className: "square", onMouseDown: (event) =>
+        this.state.controllerCallBackObject.handleEvent({
+          callingObject: this,
+          event: event }) }, /*#__PURE__*/
+
+
+
+
+      React.createElement("div", { className: clsName }, "  .")));
+
+
+
+  }}
+
+
+//controller which handles all the callbacks from the square class elements in the handleEvent function 
+class GameCallBackController extends CallBackController {
+  constructor(props) {
+    super(props);
+
+    //append to state
+    this.state['xIsNext'] = true;
+    this.state['winner'] = null;
+
+  }
+
+  //handles the callback from the elements when a mouse button is pressed
+  handleEvent(props) {
+
+    var callingObject = props.callingObject;
+    var statusBar = this.getElement({ name: "StatusBar" });
+
+    //if we have a winner stop (return)
+    if (this.state.winner !== null) {
+      return;
+    }
+
+    //set state of square which was clicked on
+    callingObject.setValue({ value: this.state.xIsNext ? 'X' : 'O' });
+
+    //check if we have a winner
+    this.state.winner = this.calculateWinner();
+
+    //if we have a winner then display it 
+    if (this.state.winner) {
+      statusBar.appendValue({ subject: "Winner", message: this.state.winner });
+    } else {
+      statusBar.appendValue({ subject: "Next player", message: this.state.xIsNext ? 'O' : 'X' });
+    }
+
+    //toggle player
+    this.state.xIsNext = this.state.xIsNext ? false : true;
+
+  }
+
+  calculateWinner() {
+    //winning combinations
+    const lines = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6]];
+
+
+    for (let i = 0; i < lines.length; i++) {
+
+      //retrieve first winning combination array element and assing the array elements to a,b,c
+      const [a, b, c] = lines[i];
+      var aVal = this.getElement({ index: a }).getValue();
+      var bVal = this.getElement({ index: b }).getValue();
+      var cVal = this.getElement({ index: c }).getValue();
+
+      //check if we have a winner 
+      if (aVal !== "" && aVal === bVal && aVal === cVal)
+      return aVal;
+    }
+    return null; //no winner
+  }
+  //create three rows and a status bar
+  render() {
+    return /*#__PURE__*/(
+      React.createElement("div", { className: "game" }, /*#__PURE__*/
+      React.createElement("div", null, /*#__PURE__*/
+      React.createElement("div", { className: "board-row" }, /*#__PURE__*/
+      React.createElement(Square, {
+        index: 0,
+        value: "",
+        controllerCallBackObject: this,
+        elementName: "Square",
+        elementDisplayName: "Square",
+        cssTag: "square" }), /*#__PURE__*/
+      React.createElement(Square, {
+        index: 1,
+        value: "",
+        controllerCallBackObject: this,
+        elementName: "Square",
+        elementDisplayName: "Square",
+        cssTag: "square" }), /*#__PURE__*/
+      React.createElement(Square, {
+        index: 2,
+        value: "",
+        controllerCallBackObject: this,
+        elementName: "Square",
+        elementDisplayName: "Square",
+        cssTag: "square" })), /*#__PURE__*/
+
+      React.createElement("div", { className: "board-row" }, /*#__PURE__*/
+      React.createElement(Square, {
+        index: 3,
+        value: "",
+        controllerCallBackObject: this,
+        elementName: "Square",
+        elementDisplayName: "Square",
+        cssTag: "square" }), /*#__PURE__*/
+      React.createElement(Square, {
+        index: 4,
+        value: "",
+        controllerCallBackObject: this,
+        elementName: "Square",
+        elementDisplayName: "Square",
+        cssTag: "square" }), /*#__PURE__*/
+      React.createElement(Square, {
+        index: 5,
+        value: "",
+        controllerCallBackObject: this,
+        elementName: "Square",
+        elementDisplayName: "Square",
+        cssTag: "square" })), /*#__PURE__*/
+
+      React.createElement("div", { className: "board-row" }, /*#__PURE__*/
+      React.createElement(Square, {
+        index: 6,
+        value: "",
+        controllerCallBackObject: this,
+        elementName: "Square",
+        elementDisplayName: "Square",
+        cssTag: "square" }), /*#__PURE__*/
+      React.createElement(Square, {
+        index: 7,
+        value: "",
+        controllerCallBackObject: this,
+        elementName: "Square",
+        elementDisplayName: "Square",
+        cssTag: "square" }), /*#__PURE__*/
+      React.createElement(Square, {
+        index: 8,
+        value: "",
+        controllerCallBackObject: this,
+        elementName: "Square",
+        elementDisplayName: "Square",
+        cssTag: "square" }))), /*#__PURE__*/
+
+
+      React.createElement("div", { id: "statusBar" }, /*#__PURE__*/
+      React.createElement(StatusBar, { value: "Progress:",
+        controllerCallBackObject: this,
+        elementName: "StatusBar",
+        elementDisplayName: "StatusBar",
+        cssTag: "statusBarLine" }))));
+
+
+
+
+  }}
+
+
+//controller which handles all the callbacks from the calculator button class elements in the handleEvent function
+
+// ========================================
+
+//creates first 
+ReactDOM.render( /*#__PURE__*/
+React.createElement(GameCallBackController, null),
+document.getElementById('TicTocTwoContainer'));
+
+//creates second
+ReactDOM.render( /*#__PURE__*/
+React.createElement(GameCallBackController, null),
+document.getElementById('TicTocOneContainer'));
